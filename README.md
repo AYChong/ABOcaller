@@ -44,7 +44,23 @@ optional arguments:
                         unphased. Default behaviour is to assume vcf data is
                         phased
 ```
+### Output files 
 
+Using ABOcaller in either ABO mode or Se mode will return a tab separated output file containing either ABO  or Se genotypes and blood type, one line per individual, and columns as outlined below: 
+
+- SID: Sample ID as provided in the VCF header, or concatenated as FID_IID from gen/haps input 
+
+- ABO_haplotype: ABO blood type as a two letter haplotype, with inferred ABO status for each strand 
+
+- ABO_bloodtype: ABO blood type in O/A/B/AB format 
+
+- O_genotype: Genotype at rs8176719 or the given O allele variant 
+
+- AB_genotype: Genotype at rs8176747 or the given A/B allele variant 
+
+- Se_genotype: Genotype at rs601338 or the given secretor status variant 
+
+- Se_status: Secretor status with secretors coded as 0 and non-secretors coded as 1 
 
 ### Examples
 ABO status from vcf file
