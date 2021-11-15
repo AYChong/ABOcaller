@@ -1,0 +1,7 @@
+##fileformat=VCFv4.2
+##contig=<ID=9,length=141213431>
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=GP,Number=G,Type=Float,Description="Genotype posterior probabilities">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	indiv1	indiv2	indiv3	indiv4	indiv5	indiv6
+9	136131315	rs8176747	C	G	.	.	.	GT:GP	0|0:1,0,0	0|1:0,1,0	1|0:0,1,0	0|0:1,0,0	0|0:1,0,0	0|0:1,0,0
+9	136132908	rs8176719	T	TC	.	.	.	GT:GP	1|1:0,0.014,0.986	1|1:0,0,1	1|0:0,1,0	0|0:1,0,0	1|0:0.497,0.503,0	1|0:0.001,0.999,0

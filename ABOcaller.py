@@ -127,14 +127,14 @@ def parse_abo_haps(haps_file, sample_file, o_variant, ab_variant):
                 variant_checklist.append(variantid)
                 o_variant_0 = gen1
                 o_variant_1 = gen2
-                hap_line = [numpy.nan if x == "" else int(x) for x in indivs.split(" ")]
+                hap_line = [numpy.nan if x in ["", "NA"] else int(x) for x in indivs.split(" ")] # This shouldn't be needed as SHAPEIT/IMPUTE should fill best-guess genotypes
                 o_variant_0_data = hap_line[::2]
                 o_variant_1_data = hap_line[1::2]
             elif variantid == ab_variant:
                 variant_checklist.append(variantid)
                 ab_variant_0 = gen1
                 ab_variant_1 = gen2
-                hap_line = [numpy.nan if x == "" else int(x) for x in indivs.split(" ")]
+                hap_line = [numpy.nan if x in ["", "NA"] else int(x) for x in indivs.split(" ")]
                 ab_variant_0_data = hap_line[::2]
                 ab_variant_1_data = hap_line[1::2]
             else:
@@ -321,7 +321,7 @@ def parse_se_vcf(vcf_file, se_variant, gp_threshold, phased):
                     try:
                         se_variant_0_data, se_variant_1_data = split_GT(indivs, gt_idx, gp_idx, gp_threshold, phased)
                     except:
-                        print("ERROR: Are you sure that the data is in vcf format? First genotype is:", indivs.split("\t", 1)[0])
+                        print("ERROR: First genotype is:", indivs.split("\t", 1)[0])
                         sys.exit(1)
                 else:
                     pass
@@ -396,7 +396,7 @@ def main():
                         help="Alternate variant ID for FUT2 variant rs601338. Default is rs601338.")
     optional.add_argument("--gp_cutoff", dest="gp_threshold", required=False,
                         default=0,
-                        help="Posterior probability threshold for calling genotypes from imputed data. \nUsed when parsing .vcf files and .gen files. Default is 0.8.")
+                        help="Posterior probability threshold for calling genotypes from imputed data. \nUsed when parsing .vcf files and .gen files. Default is 0 (no threshold).")
     optional.add_argument("--unphased", dest="phased", action="store_false",
                         help="Use to indicate that input data in vcf format is unphased. Default behaviour is to assume vcf data is phased")
     args = parser.parse_args()
