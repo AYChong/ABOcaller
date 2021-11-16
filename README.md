@@ -10,8 +10,8 @@ ABOcaller: a python script to easily call ABO blood type from genotype data
 ## Usage
 ```
 usage: ABO_Se.haps_rework.py [-h] -i INFILE [-s SAMPLE] -o OUTFILE -m {ABO,Se}
-                             [--o_variant RS8176719] [--ab_variant RS8176747]
-                             [--se_variant RS601338] [--gp_cutoff GP_THRESHOLD]
+                             [--rs8176719 RS8176719] [--rs8176747 RS8176747]
+                             [--rs601338 RS601338] [--gp_cutoff GP_THRESHOLD]
                              [--unphased]
 
 required arguments:
