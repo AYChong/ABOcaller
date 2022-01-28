@@ -98,8 +98,8 @@ ABO status from vcf file with alternative SNP IDs
 python ABOcaller.py \
   -i ./example_data/ABO.vcf \
   -o ABO.tsv \
-  -m ABO
-  --rs8176719 chr9:133257521:T:TC
+  -m ABO \
+  --rs8176719 chr9:133257521:T:TC \
   --rs8176747 chr9:133255928:C:G
 ```
 
