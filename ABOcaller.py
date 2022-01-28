@@ -61,7 +61,7 @@ def check_input(infile, **kwargs):
             else:
                 filetype = "unknown"
         except TypeError:
-            print("ERROR:", "check_input:", "Sample file must be specified")
+            print("ERROR: Sample file must be specified for .gen or .haps files")
             filetype = "unknown"
     return filetype # one of "gen", "haps", "vcf"
 
@@ -140,12 +140,12 @@ def parse_abo_haps(haps_file, sample_file, o_variant, ab_variant):
             else:
                 pass
     if len(variant_checklist) < 1:
-        print("ERROR: {0} and {1} not present in haps file!".format(o_variant, ab_variant))
+        print("ERROR: {0} and {1} not present in haps file! Use the --rs8176719 and --rs8176747 flags to specify alternative SNP IDs".format(o_variant, ab_variant))
         sys.exit(1)
     else:
         for variant in [o_variant, ab_variant]:
             if not variant in variant_checklist:
-                print("ERROR: {0} not present in haps file!".format(variant))
+                print("ERROR: {0} not present in haps file! Use the --rs8176719 or --rs8176747 flags to specify alternative SNP IDs".format(variant))
                 sys.exit(1)
                 
     haplotype_df = pandas.DataFrame({
@@ -209,21 +209,29 @@ def parse_abo_vcf(vcf_file, o_variant, ab_variant, gp_threshold, phased):
                     variant_checklist.append(variantid)
                     o_variant_0 = ref
                     o_variant_1 = alt
-                    o_variant_0_data, o_variant_1_data = split_GT(indivs, gt_idx, gp_idx, gp_threshold, phased)
+                    try:
+                        o_variant_0_data, o_variant_1_data = split_GT(indivs, gt_idx, gp_idx, gp_threshold, phased)
+                    except:
+                        print("ERROR: Unrecognised genotype formatting. First genotype is:", indivs.split("\t", 1)[0])
+                        sys.exit(1)
                 elif variantid == ab_variant:
                     variant_checklist.append(variantid)
                     ab_variant_0 = ref
                     ab_variant_1 = alt
-                    ab_variant_0_data, ab_variant_1_data = split_GT(indivs, gt_idx, gp_idx, gp_threshold, phased)
+                    try:
+                        ab_variant_0_data, ab_variant_1_data = split_GT(indivs, gt_idx, gp_idx, gp_threshold, phased)
+                    except:
+                        print("ERROR: Unrecognised genotype formatting. First genotype is:", indivs.split("\t", 1)[0])
+                        sys.exit(1)
                 else:
                     pass
     if len(variant_checklist) < 1:
-        print("ERROR: {0} and {1} not present in vcf file!".format(o_variant, ab_variant))
+        print("ERROR: {0} and {1} not present in vcf file! Use the --rs8176719 and --rs8176747 flags to specify alternative SNP IDs".format(o_variant, ab_variant))
         sys.exit(1)
     else:
         for variant in [o_variant, ab_variant]:
             if not variant in variant_checklist:
-                print("ERROR: {0} not present in vcf file!".format(variant))
+                print("ERROR: {0} not present in vcf file! Use the --rs8176719 or --rs8176747 flags to specify alternative SNP IDs".format(variant))
                 sys.exit(1)
     haplotype_df = pandas.DataFrame({
         "SID":sample_list, 
@@ -267,7 +275,7 @@ def parse_se_gen(infile, sample_file, se_variant, gp_threshold):
     # Check that the correct variant is present
     variant_df = gen_df.loc[gen_df["rsid"] == se_variant]
     if variant_df.empty:
-        print("ERROR: {0} not present in gen file!".format(se_variant))
+        print("ERROR: {0} not present in gen file! Use the --rs601338 flag to specify an alternative SNP ID".format(se_variant))
         sys.exit(1)
     
     se_variant_0 = variant_df.loc[variant_df["rsid"] == se_variant, "gen1"].values[0]
@@ -321,12 +329,12 @@ def parse_se_vcf(vcf_file, se_variant, gp_threshold, phased):
                     try:
                         se_variant_0_data, se_variant_1_data = split_GT(indivs, gt_idx, gp_idx, gp_threshold, phased)
                     except:
-                        print("ERROR: First genotype is:", indivs.split("\t", 1)[0])
+                        print("ERROR: Unrecognised genotype formatting. First genotype is:", indivs.split("\t", 1)[0])
                         sys.exit(1)
                 else:
                     pass
     if len(variant_checklist) < 1:
-        print("ERROR: {0} not present in vcf file!".format(se_variant))
+        print("ERROR: {0} not present in vcf file! Use the --rs601338 flag to specify an alternative SNP ID".format(se_variant))
         sys.exit(1)
     geno_tuples = zip(se_variant_0_data, se_variant_1_data)
     genotypes = []
