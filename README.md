@@ -29,9 +29,16 @@ The FUT2 gene encodes the Fucosyltransferase 2 enzyme responsible for the expres
 ## Usage
 
 ```
+<<<<<<< HEAD
  usage: ABOcaller.py [-h] -i INFILE [-s SAMPLE] -o OUTFILE -m {ABO,Se}                                                                                            [--rs8176719 O_VARIANT] [--rs8176747 AB_VARIANT]
                      [--rs601338 SE_VARIANT] [--gp_cutoff GP_THRESHOLD]
                      [--unphased]
+=======
+usage: ABO_Se.haps_rework.py [-h] -i INFILE [-s SAMPLE] -o OUTFILE -m {ABO,Se}
+                             [--rs8176719 RS8176719] [--rs8176747 RS8176747]
+                             [--rs601338 RS601338] [--gp_cutoff GP_THRESHOLD]
+                             [--unphased]
+>>>>>>> c3f0a7b16d5e8ce09100ab8a1d3dc9b6082a49cf
 
 required arguments:
   -i INFILE, --genotype_file INFILE
