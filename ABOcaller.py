@@ -3,6 +3,7 @@
 import argparse
 import os
 import sys
+import gzip
 import pandas
 import numpy
 
@@ -29,6 +30,10 @@ abo_dict = {
 }
 se_dict = {"GG":0, "GA":0, "AG":0, "AA":1, "NA":"NA"}
 
+def check_gzip(infile):
+    with open(infile, "rb") as f:
+        return f.read(2) == b'\x1f\x8b'    
+
 def linecount(sample_file):
     f = open(sample_file, "rb")
     lines = 0
@@ -41,9 +46,11 @@ def linecount(sample_file):
     return lines
 
 def check_input(infile, **kwargs):
-    first_line = ""
-    with open(infile, "r") as datafile:
-        first_line = datafile.readline()
+    if check_gzip(infile):
+        datafile = gzip.open(infile, "rt")
+    else:
+        datafile = open(infile, "r")
+    first_line = datafile.readline()
     if first_line.startswith("##fileformat=VCF"):
         filetype = "vcf"
     else: # File should be oxford format gen/haps file
@@ -63,6 +70,7 @@ def check_input(infile, **kwargs):
         except TypeError:
             print("ERROR: Sample file must be specified for .gen or .haps files")
             filetype = "unknown"
+    datafile.close()
     return filetype # one of "gen", "haps", "vcf"
 
 def get_samples_gen(sample_file):
@@ -84,12 +92,16 @@ def get_samples_gen(sample_file):
 
 def get_samples_vcf(vcf_file):
     sample_list = []
-    with open(vcf_file, "r") as samples:
-        for line in samples:
-            if line.startswith("#CHROM"):
-                headers = line.strip().split("\t")
-                sample_list = headers[9:]
-                break
+    if check_gzip(vcf_file):
+        samples = gzip.open(vcf_file, "rt")
+    else:
+        samples = open(vcf_file, "r")
+    for line in samples:
+        if line.startswith("#CHROM"):
+            headers = line.strip().split("\t")
+            sample_list = headers[9:]
+            break
+    samples.close()
     return headers, sample_list
 
 def get_abo_type(row, abo_df):
@@ -113,32 +125,41 @@ def parse_abo_haps(haps_file, sample_file, o_variant, ab_variant):
     ab_variant_1 = ""
     variant_checklist = []
     
-    with open(sample_file, "r") as samples:
-        for i in range(2): ## skip double header row in sample file
-            next(samples)
-        for line in samples:
-            fid, iid, _ = line.strip().split(None, 2)
-            sid = fid + "_" + iid
-            sample_list.append(sid)
-    with open(haps_file, "r") as infile:
-        for line in infile:
-            chrom, variantid, pos, gen1, gen2, indivs = line.strip().split(" ", 5)
-            if variantid == o_variant:
-                variant_checklist.append(variantid)
-                o_variant_0 = gen1
-                o_variant_1 = gen2
-                hap_line = [numpy.nan if x in ["", "NA"] else int(x) for x in indivs.split(" ")] # This shouldn't be needed as SHAPEIT/IMPUTE should fill best-guess genotypes
-                o_variant_0_data = hap_line[::2]
-                o_variant_1_data = hap_line[1::2]
-            elif variantid == ab_variant:
-                variant_checklist.append(variantid)
-                ab_variant_0 = gen1
-                ab_variant_1 = gen2
-                hap_line = [numpy.nan if x in ["", "NA"] else int(x) for x in indivs.split(" ")]
-                ab_variant_0_data = hap_line[::2]
-                ab_variant_1_data = hap_line[1::2]
-            else:
-                pass
+    if check_gzip(sample_file):
+        samples = gzip.open(sample_file, "rt")
+    else:
+        samples = open(sample_file, "r")
+    for i in range(2): ## skip double header row in sample file
+        next(samples)
+    for line in samples:
+        fid, iid, _ = line.strip().split(None, 2)
+        sid = fid + "_" + iid
+        sample_list.append(sid)
+    samples.close()
+    
+    if check_gzip(haps_file):
+        infile = gzip.open(haps_file, "rt")
+    else:
+        infile = open(haps_file, "r")
+    for line in infile:
+        chrom, variantid, pos, gen1, gen2, indivs = line.strip().split(" ", 5)
+        if variantid == o_variant:
+            variant_checklist.append(variantid)
+            o_variant_0 = gen1
+            o_variant_1 = gen2
+            hap_line = [numpy.nan if x in ["", "NA"] else int(x) for x in indivs.split(" ")] # This shouldn't be needed as SHAPEIT/IMPUTE should fill best-guess genotypes
+            o_variant_0_data = hap_line[::2]
+            o_variant_1_data = hap_line[1::2]
+        elif variantid == ab_variant:
+            variant_checklist.append(variantid)
+            ab_variant_0 = gen1
+            ab_variant_1 = gen2
+            hap_line = [numpy.nan if x in ["", "NA"] else int(x) for x in indivs.split(" ")]
+            ab_variant_0_data = hap_line[::2]
+            ab_variant_1_data = hap_line[1::2]
+        else:
+            pass
+    infile.close()
     if len(variant_checklist) < 1:
         print("ERROR: {0} and {1} not present in haps file! Use the --rs8176719 and --rs8176747 flags to specify alternative SNP IDs".format(o_variant, ab_variant))
         sys.exit(1)
@@ -177,7 +198,10 @@ def split_GT(indivs, gt_idx, gp_idx, gp_threshold, phased):
                 except ValueError:
                     print("ERROR: Data does not appear to be phased... ", gt_str)
             else:
-                hapA, hapB = gt_str.split("/")
+                try:
+                    hapA, hapB = gt_str.split("/")
+                except ValueError:
+                    print("ERROR: Data appears to be phased... ", gt_str)
             hap1_data.append(int(hapA))
             hap2_data.append(int(hapB))
         else:
@@ -193,38 +217,44 @@ def parse_abo_vcf(vcf_file, o_variant, ab_variant, gp_threshold, phased):
     ab_variant_0 = ""
     ab_variant_1 = ""
     variant_checklist = []
-    with open(vcf_file, "r") as infile:
-        for line in infile:
-            if not line.startswith("#"): #skip info
-                chrom, pos, variantid, ref, alt, qual, filt, variantinfo, variantformat, indivs = line.strip().split("\t", 9)
-                if ":" in variantformat:
-                    gt_idx = variantformat.split(":").index("GT")
-                    if "GP" in variantformat:
-                        gp_idx = variantformat.split(":").index("GP")
-                else: # There should only be GT in the genotype data
-                    gt_idx = 0
-                    gp_idx = False
-                
-                if variantid == o_variant:
-                    variant_checklist.append(variantid)
-                    o_variant_0 = ref
-                    o_variant_1 = alt
-                    try:
-                        o_variant_0_data, o_variant_1_data = split_GT(indivs, gt_idx, gp_idx, gp_threshold, phased)
-                    except:
-                        print("ERROR: Unrecognised genotype formatting. First genotype is:", indivs.split("\t", 1)[0])
-                        sys.exit(1)
-                elif variantid == ab_variant:
-                    variant_checklist.append(variantid)
-                    ab_variant_0 = ref
-                    ab_variant_1 = alt
-                    try:
-                        ab_variant_0_data, ab_variant_1_data = split_GT(indivs, gt_idx, gp_idx, gp_threshold, phased)
-                    except:
-                        print("ERROR: Unrecognised genotype formatting. First genotype is:", indivs.split("\t", 1)[0])
-                        sys.exit(1)
-                else:
-                    pass
+    
+    if check_gzip(vcf_file):
+        infile = gzip.open(vcf_file, "rt")
+    else:
+        infile = open(vcf_file, "r")
+    for line in infile:
+        if not line.startswith("#"): #skip info
+            chrom, pos, variantid, ref, alt, qual, filt, variantinfo, variantformat, indivs = line.strip().split("\t", 9)
+            if ":" in variantformat:
+                gt_idx = variantformat.split(":").index("GT")
+                if "GP" in variantformat:
+                    gp_idx = variantformat.split(":").index("GP")
+            else: # There should only be GT in the genotype data
+                gt_idx = 0
+                gp_idx = False
+
+            if variantid == o_variant:
+                variant_checklist.append(variantid)
+                o_variant_0 = ref
+                o_variant_1 = alt
+                try:
+                    o_variant_0_data, o_variant_1_data = split_GT(indivs, gt_idx, gp_idx, gp_threshold, phased)
+                except:
+                    print("ERROR: Unrecognised genotype formatting. First genotype is:", indivs.split("\t", 1)[0])
+                    sys.exit(1)
+            elif variantid == ab_variant:
+                variant_checklist.append(variantid)
+                ab_variant_0 = ref
+                ab_variant_1 = alt
+                try:
+                    ab_variant_0_data, ab_variant_1_data = split_GT(indivs, gt_idx, gp_idx, gp_threshold, phased)
+                except:
+                    print("ERROR: Unrecognised genotype formatting. First genotype is:", indivs.split("\t", 1)[0])
+                    sys.exit(1)
+            else:
+                pass
+
+    infile.close()
     if len(variant_checklist) < 1:
         print("ERROR: {0} and {1} not present in vcf file! Use the --rs8176719 and --rs8176747 flags to specify alternative SNP IDs".format(o_variant, ab_variant))
         sys.exit(1)
@@ -244,7 +274,6 @@ def parse_abo_vcf(vcf_file, o_variant, ab_variant, gp_threshold, phased):
 def call_ABO(infile, outfile, o_variant, ab_variant, gp_threshold, phased, **kwargs):
     sample_file = kwargs.get("sample", None)
     filetype = check_input(infile, sample=sample_file)
-    print("call_ABO:", "filetype:", filetype)
     if filetype == "haps":
         sample_list, haplotype_df, o_variant_0, o_variant_1, ab_variant_0, ab_variant_1 = parse_abo_haps(infile, sample_file, o_variant, ab_variant)
     elif filetype == "vcf":
@@ -271,7 +300,12 @@ def call_ABO(infile, outfile, o_variant, ab_variant, gp_threshold, phased, **kwa
 
 def parse_se_gen(infile, sample_file, se_variant, gp_threshold):
     headers, sample_list = get_samples_gen(sample_file)
-    gen_df = pandas.read_csv(infile, delim_whitespace=True, header=None, names=headers)
+    
+    if check_gzip(infile):
+        gen_df = pandas.read_csv(infile, compression="gzip", delim_whitespace=True, header=None, names=headers)
+    else:
+        gen_df = pandas.read_csv(infile, delim_whitespace=True, header=None, names=headers)
+
     # Check that the correct variant is present
     variant_df = gen_df.loc[gen_df["rsid"] == se_variant]
     if variant_df.empty:
@@ -311,28 +345,35 @@ def parse_se_vcf(vcf_file, se_variant, gp_threshold, phased):
     se_variant_1 = ""
 
     variant_checklist = []
-    with open(vcf_file, "r") as infile:
-        for line in infile:
-            if not line.startswith("#"): # skip info
-                chrom, pos, variantid, ref, alt, qual, filt, variantinfo, variantformat, indivs = line.strip().split("\t", 9)
-                if ":" in variantformat:
-                    gt_idx = variantformat.split(":").index("GT")
-                    if "GP" in variantformat:
-                        gp_idx = variantformat.split(":").index("GP")
-                else: # There should only be GT in the genotype data
-                    gt_idx = 0
-                    gp_idx = False
-                if variantid == se_variant:
-                    variant_checklist.append(variantid)
-                    se_variant_0 = ref
-                    se_variant_1 = alt
-                    try:
-                        se_variant_0_data, se_variant_1_data = split_GT(indivs, gt_idx, gp_idx, gp_threshold, phased)
-                    except:
-                        print("ERROR: Unrecognised genotype formatting. First genotype is:", indivs.split("\t", 1)[0])
-                        sys.exit(1)
-                else:
-                    pass
+    
+    if check_gzip(vcf_file):
+        infile = gzip.open(vcf_file, "rt")
+    else:
+        infile = open(vcf_file, "r")
+    for line in infile:
+        if not line.startswith("#"): # skip info
+            chrom, pos, variantid, ref, alt, qual, filt, variantinfo, variantformat, indivs = line.strip().split("\t", 9)
+            if ":" in variantformat:
+                gt_idx = variantformat.split(":").index("GT")
+                if "GP" in variantformat:
+                    gp_idx = variantformat.split(":").index("GP")
+            else: # There should only be GT in the genotype data
+                gt_idx = 0
+                gp_idx = False
+            if variantid == se_variant:
+                variant_checklist.append(variantid)
+                se_variant_0 = ref
+                se_variant_1 = alt
+                if "|" in indivs:
+                    phased=True
+                try:
+                    se_variant_0_data, se_variant_1_data = split_GT(indivs, gt_idx, gp_idx, gp_threshold, phased)
+                except:
+                    print("ERROR: Unrecognised genotype formatting. First genotype is:", indivs.split("\t", 1)[0])
+                    sys.exit(1)
+            else:
+                pass
+    infile.close()
     if len(variant_checklist) < 1:
         print("ERROR: {0} not present in vcf file! Use the --rs601338 flag to specify an alternative SNP ID".format(se_variant))
         sys.exit(1)
