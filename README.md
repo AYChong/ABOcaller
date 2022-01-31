@@ -12,7 +12,7 @@ ABOcaller: a python script to easily call ABO blood type from genotype data
 ### ABO types
 The ABO gene encodes the glycosyltransferase enzymes responsible for the presentation of A or B antigens on cell surfaces. The most common ABO alleles can be defined using four variable positions, and genetic inference of ABO blood type generally relies on a combination of these (A/B alleles: rs8176743, rs8176746, and rs8176747; O allele: rs8176719). 
 
-ABOcaller takes a VCF file or .gen file containing genotypes for rs8176747 (AB) and rs8176719 (O) to infer ABO blood type. If rsIDs are not present in the genotype file, such as in vcf files from some imputation software or servers, alternative IDs can be provided by including the "--rs8176719" and "--rs8176747" flags and the appropriate SNP IDs. For example, imputation servers may return phased VCF files with SNP IDs in the format "chr:position:ref:alt". 
+ABOcaller takes a VCF file or SHAPEIT haplotype file containing genotypes for rs8176747 (AB) and rs8176719 (O) to infer ABO blood type. If rsIDs are not present in the genotype file, such as in vcf files from some imputation software or servers, alternative IDs can be provided by including the "--rs8176719" and "--rs8176747" flags and the appropriate SNP IDs. For example, imputation servers may return phased VCF files with SNP IDs in the format "chr:position:ref:alt". 
 
 If the data is not already phased, we recommend phasing the region spanning a minimum of 1Mb across the ABO gene region using IMPUTE2 or SHAPEIT and using the resulting haplotype file as input alongside the appropriate sample file (see [publication link] for more information). Unphased data can be used by including the flag “--unphased”. 
 
@@ -103,7 +103,7 @@ python ABOcaller.py \
   --rs8176747 chr9:133255928:C:G
 ```
 
-ABO status froman unphased vcf file
+ABO status from an unphased vcf file
 ```
 python ABOcaller.py \
   -i ./example_data/ABO.vcf \
@@ -112,7 +112,7 @@ python ABOcaller.py \
   --unphased
 ```
 
-ABO status from IMPUTE haplotype data
+ABO status from SHAPEIT haplotype data
 ```
 python ABOcaller.py \
   -i ./example_data/ABO.haps \
